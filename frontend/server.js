@@ -19,7 +19,7 @@ app.post("/submit", async (req, res) => {
         params.append("password", req.body.password);
 
         const response = await axios.post(
-            "http://backend:5000/submit",
+            `${process.env.BACKEND_URL || "http://127.0.0.1:5000"}/submit`,
             params.toString(),
             {
                 headers: {
