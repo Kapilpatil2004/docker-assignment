@@ -1,0 +1,50 @@
+
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        APP_HOST = '172.31.7.46'
+        SSH_CREDENTIAL = 'app-ec2-ssh'
+        APP_DIR = '/home/ubuntu/docker-assignment'
+    }
+
+    stages {
+        stage('Validate Frontend Files') {
+            steps {
+                sh '''
+                    test -f frontend/server.js
+                    test -f frontend/package.json
+                    echo "Frontend files validated."
+                '''
+            }
+        }
+
+        stage('Deploy Express Frontend') {
+            steps {
+                sshagent(credentials: [SSH_CREDENTIAL]) {
+                    sh '''
+                        ssh -o StrictHostKeyChecking=accept-new ubuntu@$APP_HOST \
+                          'cd /home/ubuntu/docker-assignment && git pull --ff-only origin main'
+
+                        ssh ubuntu@$APP_HOST \
+                          'cd /home/ubuntu/docker-assignment/frontend && npm install --omit=dev && sudo -n systemctl restart express-frontend && sudo -n systemctl is-active express-frontend'
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo 'Express frontend deployment completed successfully.'
+        }
+        failure {
+            echo 'Express frontend deployment failed. Check Console Output.'
+        }
+    }
+}
